@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#faf8f2">
+  <meta name="description" content="Susun puzzle foto bersama teman secara realtime.">
+  <title>Rangkai — Puzzle bersama teman</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/config.js"></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Rangkai, beranda"><span class="brand-mark">✳</span> rangkai<span class="brand-dot">.</span></a>
+      <div class="topbar-right"><span class="eyebrow topbar-caption">PUZZLE LEBIH SERU BARENG</span><span id="connectionBadge" class="connection-badge hidden"><span></span> Terhubung</span></div>
+    </header>
+
+    <main id="homeView" class="home-view">
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow hero-kicker"><span class="sparkle">✦</span> MAIN, CERITA, RANGKAI BERSAMA</span>
+          <h1>Setiap keping<br>lebih berarti <em>bersama.</em></h1>
+          <p>Ubah foto favoritmu jadi puzzle. Undang teman lewat satu link, lalu susun kenangan yang sama secara langsung.</p>
+          <div class="hero-actions"><button id="startBtn" class="button button-primary">Buat puzzle <span aria-hidden="true">↗</span></button><a href="#how" class="text-link">Lihat cara main <span aria-hidden="true">↘</span></a></div>
+          <div class="hero-foot"><div class="avatar-stack"><span>R</span><span>A</span><span>✦</span></div><span>Satu papan. Banyak tangan. Lebih banyak cerita.</span></div>
+        </div>
+        <div class="hero-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-card art-card-back"><span class="art-label">MOMEN KECIL, MEMORI BESAR</span></div><div class="art-card art-card-front"><div class="art-image"></div><div class="art-jigsaw-lines"></div><div class="art-sticker">✳</div></div><span class="art-note">made to be<br>put together <span>♡</span></span><div class="art-cursor art-cursor-one"><span>↖</span><b>kamu</b></div><div class="art-cursor art-cursor-two"><span>↖</span><b>temanmu</b></div></div>
+      </section>
+      <section id="how" class="how-section"><div><span class="eyebrow">MUDAH BANGET</span><h2>Mulai dalam tiga langkah.</h2></div><div class="steps"><div><span>01</span><b>Pilih foto</b><p>Gunakan foto sendiri atau pilih koleksi kami.</p></div><div><span>02</span><b>Bagikan link</b><p>Temanmu bisa langsung bergabung tanpa daftar akun.</p></div><div><span>03</span><b>Susun bareng</b><p>Lihat cursor dan gerakan teman secara langsung.</p></div></div></section>
+    </main>
+
+    <main id="roomView" class="room-view hidden">
+      <div class="game-heading"><div><span class="eyebrow">RUANG BERMAIN</span><h1 id="roomTitle">Puzzle bersama</h1><p id="roomSubtitle">Ajak teman untuk menyusun bersama.</p></div><div class="game-heading-actions"><button id="inviteBtn" class="button button-secondary">⤴ <span>Bagikan link</span></button><button id="newPuzzleBtn" class="button button-primary">+ Puzzle baru</button></div></div>
+      <div class="game-layout"><section class="board-panel"><div class="board-toolbar"><div class="toolbar-left"><span class="live-dot"></span><b id="progressText">0% selesai</b><span class="toolbar-divider"></span><span id="pieceCountText">0 keping</span></div><div class="toolbar-right"><button id="zoomOutBtn" class="icon-button" aria-label="Perkecil">−</button><button id="resetViewBtn" class="icon-button reset-view" aria-label="Atur ulang tampilan">⌕</button><button id="zoomInBtn" class="icon-button" aria-label="Perbesar">+</button></div></div><div id="canvasWrap" class="canvas-wrap"><canvas id="gameCanvas" aria-label="Papan puzzle"></canvas><div id="cursors" class="cursors"></div><div id="gameToast" class="game-toast hidden"></div></div><div class="board-bottom"><span>✳ Seret keping ke tempatnya</span><span>Geser area kosong untuk pindah papan · Scroll untuk zoom</span></div></section><aside class="sidebar"><div class="side-card preview-card"><div class="side-card-top"><span class="eyebrow">GAMBAR ASLI</span><span>↗</span></div><img id="previewImage" alt="Foto puzzle"><p>Lihat gambarnya, lalu susun keping-kepingnya.</p></div><div class="side-card"><div class="side-card-top"><span class="eyebrow">PEMAIN DI RUANG INI</span><span id="playerCount">1 online</span></div><div id="players" class="players"></div><button id="inviteSideBtn" class="invite-side">+ Undang teman</button></div><div class="tip-card"><span>✦</span><p>Setiap keping yang kamu letakkan akan langsung terlihat oleh semua teman.</p></div></aside></div>
+    </main>
+  </div>
+
+  <dialog id="createDialog" class="modal"><form id="createForm" method="dialog"><div class="modal-top"><div><span class="eyebrow">MULAI SESI BARU</span><h2>Buat puzzlemu</h2></div><button type="button" class="close-button" data-close aria-label="Tutup">×</button></div><p class="modal-intro">Pilih gambar, atur tingkat kesulitan, lalu bagikan link untuk bermain bareng.</p><label class="field-label">Nama kamu<input id="createName" name="name" maxlength="24" required placeholder="Contoh: Bunga"></label><label class="field-label">Judul puzzle<input id="createTitle" name="title" maxlength="60" required placeholder="Contoh: Liburan di pantai"></label><div class="field-label">Pilih gambar</div><div class="image-options"><button type="button" class="image-option selected" data-preset="coast"><img src="/assets/coast.svg" alt="Ilustrasi pantai"><span>Pantai sore</span></button><button type="button" class="image-option" data-preset="garden"><img src="/assets/garden.svg" alt="Ilustrasi taman"><span>Taman bunga</span></button><button type="button" class="image-option" data-preset="city"><img src="/assets/city.svg" alt="Ilustrasi kota"><span>Kota senja</span></button></div><label class="upload-zone" for="photoInput"><span class="upload-icon">↥</span><span><b>Atau upload fotomu sendiri</b><small>JPG, PNG, atau WEBP · maks. 10 MB</small></span><span id="uploadFilename" class="upload-filename">Pilih foto</span></label><input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp" hidden><div class="field-label">Jumlah keping</div><div class="difficulty-options"><label><input type="radio" name="difficulty" value="24" checked><span>24 <small>Santai</small></span></label><label><input type="radio" name="difficulty" value="48"><span>48 <small>Seru</small></span></label><label><input type="radio" name="difficulty" value="96"><span>96 <small>Menantang</small></span></label><label><input type="radio" name="difficulty" value="150"><span>150 <small>Ahli</small></span></label></div><p id="createError" class="form-error hidden"></p><button id="createSubmit" class="button button-primary modal-submit" type="submit">Buat ruang bermain <span>↗</span></button></form></dialog>
+  <dialog id="joinDialog" class="modal join-modal"><form id="joinForm" method="dialog"><div class="modal-top"><div><span class="eyebrow">KAMU DIUNDANG!</span><h2>Yuk, susun bareng</h2></div></div><p class="modal-intro">Masukkan namamu agar teman bisa melihat cursormu di papan.</p><label class="field-label">Nama kamu<input id="joinName" name="name" maxlength="24" required placeholder="Contoh: Bunga"></label><p id="joinError" class="form-error hidden"></p><button id="joinSubmit" class="button button-primary modal-submit" type="submit">Masuk ke puzzle <span>↗</span></button></form></dialog>
+</body>
+</html>

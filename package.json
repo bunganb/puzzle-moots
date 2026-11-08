@@ -1,0 +1,11 @@
+{
+  "name": "puzzle-together",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "check": "node --check public/app.js && node --check public/supabase.js && node --check public/game.js && node --check scripts/build.mjs"
+  }
+}
