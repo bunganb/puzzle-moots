@@ -6,7 +6,7 @@ export const configured = Boolean(config.url && config.key);
 export const presets = { coast: '/assets/coast.svg', garden: '/assets/garden.svg', city: '/assets/city.svg' };
 
 function fail(message, details) {
-  const error = new Error(message || details || 'Terjadi kesalahan. Coba lagi.');
+  const error = new Error(message || details || 'Something went wrong. Please try again.');
   error.details = details;
   throw error;
 }
@@ -78,25 +78,26 @@ export async function createRoom(data) {
   if (!configured) {
     const id = crypto.randomUUID();
     const room = { id, title: data.title, preset: data.preset, demo_image: data.demoImage || null, image_path: null, image_width: data.width, image_height: data.height, cols: data.cols, rows: data.rows, board_width: data.boardWidth, board_height: data.boardHeight, owner_id: userId() };
-    const pieces = Array.from({ length: data.cols * data.rows }, (_, i) => initialPiece(room, i));
+    const pieces = Array.from({ length: data.cols * data.rows }, (_, i) => initialPiece(room, i, data.positions[i]));
     localStorage.setItem(DEMO_PREFIX + id, JSON.stringify({ room, pieces }));
     return room;
   }
   return rpc('create_puzzle_room', {
     p_title: data.title, p_name: data.name, p_preset: data.preset || null,
     p_image_path: data.imagePath || null, p_width: data.width, p_height: data.height,
-    p_cols: data.cols, p_rows: data.rows, p_board_width: data.boardWidth, p_board_height: data.boardHeight
+    p_cols: data.cols, p_rows: data.rows, p_board_width: data.boardWidth, p_board_height: data.boardHeight,
+    p_positions: data.positions
   });
 }
 
-export function initialPiece(room, i) {
-  return { room_id: room.id, piece_index: i, x: 70 + ((i * 137 + 19) % 1390), y: 55 + ((i * 97 + 43) % 920), placed: false, lock_owner: null, lock_until: null, version: 0 };
+export function initialPiece(room, i, position) {
+  return { room_id: room.id, piece_index: i, x: position.x, y: position.y, placed: false, lock_owner: null, lock_until: null, version: 0 };
 }
 
 export async function joinRoom(id, name) {
   if (!configured) {
     const saved = JSON.parse(localStorage.getItem(DEMO_PREFIX + id) || 'null');
-    if (!saved) fail('Link puzzle tidak ditemukan.');
+    if (!saved) fail('Puzzle link not found.');
     return saved.room;
   }
   return rpc('join_puzzle_room', { p_room: id, p_name: name });
@@ -124,7 +125,7 @@ export async function releasePiece(id, index, x, y, placed) {
 }
 
 export async function uploadPhoto(blob) {
-  if (!configured) fail('Upload foto memerlukan konfigurasi Supabase.');
+  if (!configured) fail('Photo uploads need Supabase to be configured.');
   const path = `${userId()}/${crypto.randomUUID()}.webp`;
   await api(`/storage/v1/object/puzzle-images/${path}`, {
     method: 'POST', headers: { 'Content-Type': 'image/webp', 'x-upsert': 'false' }, body: blob
@@ -178,22 +179,22 @@ export class RoomChannel {
       };
       this.socket.onmessage = event => this.receive(JSON.parse(event.data));
       this.socket.onclose = () => this.reconnect();
-      this.socket.onerror = () => this.handlers.status?.('Koneksi terputus, mencoba lagi…');
+      this.socket.onerror = () => this.handlers.status?.('Connection lost. Trying again…');
     } catch (error) { this.handlers.status?.(error.message); this.reconnect(); }
   }
   reconnect() {
     clearInterval(this.heartbeat); this.ready = false;
     if (this.closed) return;
-    this.handlers.status?.('Menghubungkan ulang…');
+    this.handlers.status?.('Reconnecting…');
     clearTimeout(this.retry);
     this.retry = setTimeout(() => this.connect(), 2500);
   }
   receive(frame) {
     const [joinRef, ref, topic, event, payload] = frame;
     if (event === 'phx_reply' && ref === this.joinRef) {
-      if (payload.status !== 'ok') { this.handlers.status?.('Gagal masuk ruang realtime. Periksa kebijakan Realtime.'); return; }
+      if (payload.status !== 'ok') { this.handlers.status?.('Could not join live room. Check the Realtime settings.'); return; }
       this.ready = true;
-      this.handlers.status?.('Terhubung');
+      this.handlers.status?.('Connected');
       this.push('presence', { type: 'presence', event: 'track', payload: { ...this.person, user_id: userId() } });
       this.handlers.resync?.();
     } else if (event === 'broadcast') this.handlers.broadcast?.(payload.event, payload.payload);
@@ -207,7 +208,7 @@ export class RoomChannel {
         if (!this.presence[key].length) delete this.presence[key];
       }
       this.handlers.presence?.(this.presence);
-    } else if (event === 'system' && payload.status === 'error') this.handlers.status?.(payload.message || 'Realtime bermasalah.');
+    } else if (event === 'system' && payload.status === 'error') this.handlers.status?.(payload.message || 'Live connection is having trouble.');
   }
   handleDemo(message) {
     if (message.user_id === userId()) return;

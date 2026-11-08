@@ -1,0 +1,24 @@
+body.game-active{overflow:hidden;background:#a9784f}
+body.game-active .app-shell{max-width:none}
+body.game-active .topbar{display:none}
+body.game-active .room-view{height:100dvh;padding:0;overflow:hidden;position:relative}
+body.game-active .game-heading{height:66px;padding:0 22px;margin:0;background:#fbf8f0;box-shadow:0 2px 12px #4c2f1c30;position:relative;z-index:6}
+body.game-active .game-heading .eyebrow,body.game-active .game-heading p{display:none}
+body.game-active .game-heading h1{font-size:21px;letter-spacing:-.7px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+body.game-active .game-heading-actions .button{padding:10px 14px;font-size:12px}
+body.game-active .game-layout{display:block;height:calc(100dvh - 66px)}
+body.game-active .board-panel{height:100%;border:0;border-radius:0;background:transparent;box-shadow:none}
+body.game-active .board-toolbar{height:44px;padding:0 18px;background:#fbf8f0;border-bottom:1px solid #ded8cc}
+body.game-active .canvas-wrap{height:calc(100% - 44px);min-height:0;background:repeating-linear-gradient(0deg,transparent 0 13px,#5c371f11 14px,#ffffff09 16px,transparent 22px),repeating-linear-gradient(90deg,#bd8d60 0 300px,#a8764b 301px,#a8764b 305px,#c29465 308px,#b58253 610px,#986842 612px,#bd8d60 615px)}
+body.game-active .canvas-wrap:before{background-image:repeating-linear-gradient(90deg,transparent 0 3px,#422a1811 5px,transparent 8px,transparent 21px,#ffffff22 23px,transparent 26px);background-size:auto;opacity:.5}
+body.game-active .board-bottom{display:none}
+body.game-active .sidebar{display:none}
+body.game-active .sidebar.preview-open{display:block;position:absolute;top:118px;right:18px;width:210px;z-index:8;box-shadow:0 18px 45px #3e241d55;border-radius:14px}
+body.game-active .sidebar.preview-open .side-card:not(.preview-card),body.game-active .sidebar.preview-open .tip-card{display:none}
+body.game-active .sidebar.preview-open .preview-card{background:#fbf7ed}
+body.game-active .sidebar.preview-open .preview-card img{height:145px}
+body.game-active .preview-toggle{border:0;background:#eeeae0;color:#426358;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:800}
+body.game-active .board-toolbar .toolbar-left{gap:10px}
+body.game-active .board-toolbar .toolbar-right{gap:6px}
+body.game-active .board-toolbar .player-chip{font-size:11px;color:#718078;margin-left:6px}
+@media(max-width:760px){body.game-active .game-heading{height:58px;padding:0 12px}body.game-active .game-heading h1{font-size:16px;max-width:38vw}body.game-active .game-heading-actions .button{padding:8px 9px;font-size:11px}body.game-active .game-heading-actions .button-primary{font-size:11px}body.game-active .game-layout{height:calc(100dvh - 58px)}body.game-active .board-toolbar{padding:0 10px}body.game-active .board-toolbar .toolbar-left{gap:5px}body.game-active .toolbar-divider,body.game-active .player-chip{display:none}body.game-active .sidebar.preview-open{top:105px;right:10px;width:180px}}

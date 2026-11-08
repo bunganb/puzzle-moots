@@ -77,31 +77,46 @@ using (bucket_id = 'puzzle-images' and (
              where r.image_path = storage.objects.name and m.user_id = (select auth.uid()))
 ));
 
+drop function if exists public.create_puzzle_room(text,text,text,text,integer,integer,integer,integer,integer,integer);
+
 create or replace function public.create_puzzle_room(
   p_title text, p_name text, p_preset text, p_image_path text,
   p_width integer, p_height integer, p_cols integer, p_rows integer,
-  p_board_width integer, p_board_height integer
+  p_board_width integer, p_board_height integer, p_positions jsonb
 ) returns public.puzzle_rooms
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_room public.puzzle_rooms;
   v_index integer;
+  v_x numeric;
+  v_y numeric;
 begin
-  if auth.uid() is null then raise exception 'Login diperlukan'; end if;
-  if char_length(trim(p_name)) not between 1 and 24 then raise exception 'Nama harus 1–24 karakter'; end if;
-  if p_cols * p_rows > 150 then raise exception 'Maksimal 150 keping'; end if;
+  if auth.uid() is null then raise exception 'Please sign in first'; end if;
+  if char_length(trim(p_name)) not between 1 and 24 then raise exception 'Name must be 1–24 characters'; end if;
+  if p_cols * p_rows > 150 then raise exception 'Up to 150 pieces are supported'; end if;
+  if jsonb_typeof(p_positions) is distinct from 'array' then
+    raise exception 'Piece layout is incomplete';
+  end if;
+  if jsonb_array_length(p_positions) <> p_cols * p_rows then
+    raise exception 'Piece layout is incomplete';
+  end if;
   if p_image_path is not null then
     if split_part(p_image_path, '/', 1) <> auth.uid()::text or
        not exists (select 1 from storage.objects where bucket_id = 'puzzle-images' and name = p_image_path)
-    then raise exception 'Foto tidak tersedia'; end if;
+    then raise exception 'Photo is not available'; end if;
   end if;
   insert into public.puzzle_rooms(owner_id, title, preset, image_path, image_width, image_height, cols, rows, board_width, board_height)
   values(auth.uid(), trim(p_title), p_preset, p_image_path, p_width, p_height, p_cols, p_rows, p_board_width, p_board_height)
   returning * into v_room;
   insert into public.room_members(room_id, user_id, display_name) values(v_room.id, auth.uid(), trim(p_name));
   for v_index in 0..(p_cols * p_rows - 1) loop
+    v_x := (p_positions->v_index->>'x')::numeric;
+    v_y := (p_positions->v_index->>'y')::numeric;
+    if v_x is null or v_y is null or v_x < 0 or v_x > 1540 or v_y < 0 or v_y > 1040 then
+      raise exception 'Piece layout contains an invalid position';
+    end if;
     insert into public.piece_state(room_id, piece_index, x, y)
-    values(v_room.id, v_index, 70 + ((v_index * 137 + 19) % 1390), 55 + ((v_index * 97 + 43) % 920));
+    values(v_room.id, v_index, v_x, v_y);
   end loop;
   return v_room;
 end $$;
@@ -111,10 +126,10 @@ returns public.puzzle_rooms
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_room public.puzzle_rooms;
 begin
-  if auth.uid() is null then raise exception 'Login diperlukan'; end if;
-  if char_length(trim(p_name)) not between 1 and 24 then raise exception 'Nama harus 1–24 karakter'; end if;
+  if auth.uid() is null then raise exception 'Please sign in first'; end if;
+  if char_length(trim(p_name)) not between 1 and 24 then raise exception 'Name must be 1–24 characters'; end if;
   select * into v_room from public.puzzle_rooms where id = p_room;
-  if not found then raise exception 'Link puzzle tidak ditemukan'; end if;
+  if not found then raise exception 'Puzzle link not found'; end if;
   insert into public.room_members(room_id, user_id, display_name)
   values(p_room, auth.uid(), trim(p_name))
   on conflict (room_id, user_id) do update set display_name = excluded.display_name;
@@ -127,7 +142,7 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_claimed boolean;
 begin
   if not exists (select 1 from public.room_members where room_id = p_room and user_id = auth.uid()) then
-    raise exception 'Bukan anggota ruang';
+    raise exception 'You are not in this room';
   end if;
   update public.piece_state set lock_owner = auth.uid(), lock_until = now() + interval '20 seconds'
   where room_id = p_room and piece_index = p_piece and not placed
@@ -148,17 +163,17 @@ declare
   v_threshold numeric;
 begin
   if not exists (select 1 from public.room_members where room_id = p_room and user_id = auth.uid()) then
-    raise exception 'Bukan anggota ruang';
+    raise exception 'You are not in this room';
   end if;
   if p_x is null or p_y is null or p_x < 0 or p_x > 1540 or p_y < 0 or p_y > 1040 then
-    raise exception 'Posisi tidak valid';
+    raise exception 'Invalid piece position';
   end if;
   select * into v_room from public.puzzle_rooms where id = p_room;
   v_home_x := 420 + (p_piece % v_room.cols) * v_room.board_width::numeric / v_room.cols;
   v_home_y := 210 + floor(p_piece::numeric / v_room.cols) * v_room.board_height::numeric / v_room.rows;
   v_threshold := greatest(24, least(42, v_room.board_width::numeric / v_room.cols * .38));
   if p_placed and sqrt(power(p_x - v_home_x, 2) + power(p_y - v_home_y, 2)) >= v_threshold then
-    raise exception 'Keping belum tepat pada tempatnya';
+    raise exception 'Piece is not close enough to its place';
   end if;
   update public.piece_state
   set x = case when p_placed then v_home_x else p_x end,
@@ -169,15 +184,15 @@ begin
   where room_id = p_room and piece_index = p_piece and not placed
     and lock_owner = auth.uid() and lock_until >= now()
   returning * into v_piece;
-  if not found then raise exception 'Keping sudah diubah pemain lain. Coba lagi.'; end if;
+  if not found then raise exception 'Another player moved this piece. Please try again.'; end if;
   return v_piece;
 end $$;
 
-revoke all on function public.create_puzzle_room(text,text,text,text,integer,integer,integer,integer,integer,integer) from public, anon;
+revoke all on function public.create_puzzle_room(text,text,text,text,integer,integer,integer,integer,integer,integer,jsonb) from public, anon;
 revoke all on function public.join_puzzle_room(uuid,text) from public, anon;
 revoke all on function public.claim_puzzle_piece(uuid,integer) from public, anon;
 revoke all on function public.release_puzzle_piece(uuid,integer,numeric,numeric,boolean) from public, anon;
-grant execute on function public.create_puzzle_room(text,text,text,text,integer,integer,integer,integer,integer,integer) to authenticated;
+grant execute on function public.create_puzzle_room(text,text,text,text,integer,integer,integer,integer,integer,integer,jsonb) to authenticated;
 grant execute on function public.join_puzzle_room(uuid,text) to authenticated;
 grant execute on function public.claim_puzzle_piece(uuid,integer) to authenticated;
 grant execute on function public.release_puzzle_piece(uuid,integer,numeric,numeric,boolean) to authenticated;

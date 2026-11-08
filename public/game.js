@@ -19,6 +19,43 @@ export function dimensions(width, height, wanted) {
   return { cols, rows, boardWidth: Math.round(width * scale), boardHeight: Math.round(height * scale) };
 }
 
+export function initialPositions(room) {
+  const count = room.cols * room.rows;
+  const pieceW = room.boardWidth / room.cols;
+  const pieceH = room.boardHeight / room.rows;
+  const gap = Math.min(pieceW, pieceH) * .33 + 6;
+  const stepX = pieceW + gap, stepY = pieceH + gap;
+  const regions = [
+    { x: 25, y: 18, width: WORLD_W - 50, height: BOARD_Y - 38 },
+    { x: 25, y: BOARD_Y + 20, width: BOARD_X - 50, height: room.boardHeight - 40 },
+    { x: BOARD_X + room.boardWidth + 25, y: BOARD_Y + 20, width: WORLD_W - BOARD_X - room.boardWidth - 50, height: room.boardHeight - 40 },
+    { x: 25, y: BOARD_Y + room.boardHeight + 30, width: WORLD_W - 50, height: WORLD_H - BOARD_Y - room.boardHeight - 50 }
+  ];
+  const banks = regions.map(region => {
+    const cols = Math.max(0, Math.floor((region.width - pieceW) / stepX) + 1);
+    const rows = Math.max(0, Math.floor((region.height - pieceH) / stepY) + 1);
+    const startX = region.x + Math.max(0, (region.width - (cols - 1) * stepX - pieceW) / 2);
+    const startY = region.y + Math.max(0, (region.height - (rows - 1) * stepY - pieceH) / 2);
+    return Array.from({ length: cols * rows }, (_, i) => ({
+      x: Math.round(startX + (i % cols) * stepX),
+      y: Math.round(startY + Math.floor(i / cols) * stepY)
+    }));
+  });
+  const positions = [];
+  for (let slot = 0; positions.length < count; slot++) {
+    let added = false;
+    for (const bank of banks) if (bank[slot] && positions.length < count) { positions.push(bank[slot]); added = true; }
+    if (!added) throw new Error('Too many pieces for this image.');
+  }
+  let seed = count * 1543 + room.boardWidth * 31 + room.boardHeight;
+  for (let i = positions.length - 1; i > 0; i--) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const j = seed % (i + 1);
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  return positions;
+}
+
 function hashEdge(a, b, salt) { return ((a * 173 + b * 397 + salt * 47) % 2) ? 1 : -1; }
 
 function drawEdge(ctx, x0, y0, x1, y1, tab, depth) {
@@ -135,7 +172,7 @@ export class PuzzleGame {
         }
         this.drag.accepted = accepted;
         this.drag.lastClaim = performance.now();
-        if (!accepted) { this.pieces[index].x = this.drag.previous.x; this.pieces[index].y = this.drag.previous.y; this.drag = null; this.callbacks.toast?.('Keping ini sedang dipegang temanmu.'); }
+        if (!accepted) { this.pieces[index].x = this.drag.previous.x; this.pieces[index].y = this.drag.previous.y; this.drag = null; this.callbacks.toast?.('A friend is moving this piece right now.'); }
       } catch (error) { if (this.drag?.index === index) this.drag = null; this.callbacks.toast?.(error.message); }
     } else this.pan = { x: point.x, y: point.y, cameraX: this.camera.x, cameraY: this.camera.y };
     this.render();
@@ -210,7 +247,7 @@ export class PuzzleGame {
         drag.renewing = false;
         if (!ok) {
           Object.assign(this.pieces[drag.index], drag.previous);
-          this.drag = null; this.callbacks.toast?.('Keping dilepas karena koneksi berubah.'); this.render();
+          this.drag = null; this.callbacks.toast?.('Piece released after a connection change.'); this.render();
         }
       }).catch(() => { if (this.drag === drag) drag.renewing = false; });
     }
@@ -242,10 +279,11 @@ export class PuzzleGame {
     ctx.setTransform(this.density, 0, 0, this.density, 0, 0);
     ctx.clearRect(0, 0, this.viewW, this.viewH);
     ctx.translate(this.camera.x, this.camera.y); ctx.scale(this.camera.scale, this.camera.scale);
-    ctx.save(); ctx.shadowColor = '#40625422'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 11;
-    ctx.fillStyle = '#fffdf8'; ctx.fillRect(BOARD_X - 10, BOARD_Y - 10, this.room.board_width + 20, this.room.board_height + 20); ctx.restore();
-    ctx.save(); ctx.globalAlpha = .17; ctx.drawImage(this.image, BOARD_X, BOARD_Y, this.room.board_width, this.room.board_height); ctx.restore();
-    ctx.strokeStyle = '#b2c7b7'; ctx.lineWidth = 2; ctx.strokeRect(BOARD_X, BOARD_Y, this.room.board_width, this.room.board_height);
+    ctx.save(); ctx.shadowColor = '#301d12aa'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 10;
+    ctx.fillStyle = '#735037'; ctx.fillRect(BOARD_X - 15, BOARD_Y - 15, this.room.board_width + 30, this.room.board_height + 30); ctx.restore();
+    ctx.fillStyle = '#f6f0df'; ctx.fillRect(BOARD_X - 5, BOARD_Y - 5, this.room.board_width + 10, this.room.board_height + 10);
+    ctx.save(); ctx.globalAlpha = .16; ctx.drawImage(this.image, BOARD_X, BOARD_Y, this.room.board_width, this.room.board_height); ctx.restore();
+    ctx.strokeStyle = '#b9ad94'; ctx.lineWidth = 2; ctx.strokeRect(BOARD_X, BOARD_Y, this.room.board_width, this.room.board_height);
     for (let i = 0; i < this.pieces.length; i++) if (this.pieces[i].placed) this.drawPiece(this.pieces[i], i);
     for (let i = 0; i < this.pieces.length; i++) {
       if (this.pieces[i].placed || this.drag?.index === i) continue;

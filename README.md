@@ -1,56 +1,60 @@
 # Rangkai
 
-Puzzle foto kolaboratif untuk browser. Situs statis ini berjalan di Vercel, dengan Supabase untuk autentikasi tamu, penyimpanan foto, state puzzle, dan Realtime.
+A collaborative jigsaw game for the browser. The static site runs on Vercel; Supabase handles guest sign-in, photos, puzzle state, and live multiplayer.
 
-## Fitur
+## Features
 
-- Buat puzzle dari tiga gambar contoh atau foto sendiri (JPG, PNG, WEBP).
-- Pilih sekitar 24, 48, 96, atau 150 keping; jumlah akhir menyesuaikan rasio gambar.
-- Bagikan tautan room. Pemain masuk dengan nama tanpa registrasi email.
-- Cursor bernama dan keping yang sedang diseret terlihat secara realtime. Cursor diperhalus dengan interpolasi setiap frame; laju pengiriman menyesuaikan jumlah pemain.
-- Posisi akhir keping disimpan di database. Klaim keping mencegah dua pemain menaruh keping yang sama sekaligus.
-- Papan bisa digeser dan di-zoom dengan mouse atau sentuhan.
+- Turn one of three included pictures or your own JPG, PNG, or WEBP photo into a puzzle.
+- Choose roughly 24, 48, 96, or 150 pieces. The exact count follows the picture's aspect ratio.
+- Share a room link. Friends join with a name, no email account needed.
+- See named cursors and dragged pieces move live. Cursor motion is smoothed between updates.
+- Pieces start around the center board on a full-screen wooden table. The finished picture is available from the Picture button.
+- Piece placement is saved in the database. Piece locks prevent two players from moving the same piece at once.
+- Pan and zoom with a mouse or touch.
 
-## Jalankan lokal
+## Run locally
 
-Tanpa Supabase, aplikasi berjalan dalam **mode demo lokal**. Room hanya tersimpan di browser yang sama; buka dua tab untuk mencoba cursor dan sinkronisasi.
+Without Supabase, the app runs in **local demo mode**. Rooms are saved in your browser; open two tabs to try cursor and piece syncing.
 
 ```sh
 npm run dev
 ```
 
-Buka `http://localhost:3000`. Tidak ada paket npm yang perlu diinstal.
+Open `http://localhost:3000`. There are no npm packages to install.
 
-## Aktifkan multiplayer online
+## Set up online multiplayer
 
-1. Buat proyek Supabase Free.
-2. Di **Authentication → Providers**, aktifkan **Anonymous Sign-Ins**.
-3. Di **Realtime → Settings**, matikan **Allow public access** agar channel privat memakai kebijakan akses dalam skema.
-4. Jalankan seluruh isi [`supabase/schema.sql`](supabase/schema.sql) di **SQL Editor**. Skema membuat tabel, bucket privat, RPC, dan RLS.
-5. Buat `.env` dari `.env.example`, isi `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY`. Kunci ini memang kunci publik untuk browser. **Jangan masukkan service role key**.
-6. Jalankan `npm run dev` lagi. Badge di kanan atas akan berubah dari demo lokal menjadi status koneksi.
+1. Create a Supabase Free project.
+2. Under **Authentication → Providers**, enable **Anonymous Sign-Ins**.
+3. Under **Realtime → Settings**, disable **Allow public access** so private room channels use the access policies in the schema.
+4. Run all of [`supabase/schema.sql`](supabase/schema.sql) in the **SQL Editor**. If you ran an older version before, run this file again to update the room creation function.
+5. Copy `.env.example` to `.env` and set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. This is the public browser key. **Never use a service role key here.**
+6. Restart `npm run dev`. The connection badge will switch from local demo to the live connection status.
 
-Untuk pengguna publik, aktifkan CAPTCHA atau Turnstile pada anonymous sign-in melalui pengaturan Supabase agar akun tamu tidak mudah disalahgunakan. Room menggunakan UUID acak sebagai link undangan: siapa pun yang memegang link dapat bergabung. Foto berada di bucket privat dan URL unduhan yang diberikan ke anggota berlaku satu jam.
+For a public site, consider enabling CAPTCHA or Turnstile for anonymous sign-in in Supabase. Room links use random UUIDs; anyone with a link can join. Photos live in a private bucket and signed download links last one hour.
 
-## Deploy ke Vercel
+## Deploy on Vercel
 
-1. Push proyek ini ke GitHub lalu **Import Project** di Vercel.
-2. Tambahkan `SUPABASE_URL` dan `SUPABASE_PUBLISHABLE_KEY` di **Project Settings → Environment Variables** untuk Production dan Preview.
-3. Build command `npm run build`, output directory `dist` sudah ada di `vercel.json`.
-4. Deploy. Buka URL Vercel, buat room, dan uji link dari browser atau perangkat lain.
+1. Import this GitHub repository into Vercel.
+2. Add `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` under **Project Settings → Environment Variables** for Production and Preview.
+3. `vercel.json` already sets the build command to `npm run build` and the output directory to `dist`.
+4. Deploy, then create a room and test its link on another browser or device.
 
-Vercel Hobby cocok untuk proyek pribadi nonkomersial. Free tier Supabase memiliki batas pesan Realtime; aplikasi menahan laju pengiriman cursor sekitar 4–10 pesan per detik per pemain sesuai jumlah pemain, lalu menganimasikan gerakannya di browser. Jika room ramai atau dipakai lama, pantau metrik pesan dan storage di dashboard Supabase.
+The build can complete without Supabase variables, but the deployed site will then run in local demo mode. Cross-device multiplayer requires Supabase configuration.
 
-## Struktur
+Vercel Hobby is meant for personal, noncommercial projects. Supabase Free has Realtime message limits; the app sends cursor updates about 4–10 times per second per player depending on room size, and animates motion in the browser between them.
 
-- `public/app.js`: alur UI, room, upload foto, dan sinkronisasi.
-- `public/game.js`: gambar papan dan keping, input drag, snap, zoom, animasi cursor.
-- `public/supabase.js`: API Supabase, autentikasi anonim, Realtime, demo lokal.
-- `supabase/schema.sql`: database dan kebijakan akses.
-- `scripts/build.mjs`: menghasilkan situs statis di `dist` dengan konfigurasi publik.
+## Project files
 
-## Batas saat ini
+- `public/app.js`: UI, rooms, photo upload, and coordination.
+- `public/game.js`: board and piece drawing, drag and snap, zoom, and cursor animation.
+- `public/game.css`: full-screen puzzle table layout.
+- `public/supabase.js`: Supabase API, anonymous sign-in, Realtime, and local demo.
+- `supabase/schema.sql`: database and access policies.
+- `scripts/build.mjs`: creates the static site in `dist` with public configuration.
 
-- Keping menempel ke posisi akhir di papan. Rotasi dan penggabungan kelompok keping bebas belum tersedia.
-- Mode demo hanya menyinkronkan antar-tab pada browser/origin yang sama. Multiplayer antar-perangkat memerlukan konfigurasi Supabase.
-- Foto custom dalam mode demo disimpan di localStorage; ruang lama bisa hilang jika data browser dihapus.
+## Current limits
+
+- Pieces snap into the center board. Free rotation and joining groups of pieces are not included yet.
+- Local demo syncs only between tabs on the same browser and origin. Cross-device play requires Supabase.
+- Custom photos in local demo are stored in localStorage; clearing browser data can remove old rooms.
