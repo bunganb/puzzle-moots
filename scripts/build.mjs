@@ -12,7 +12,6 @@ try {
 
 const url = process.env.SUPABASE_URL || '';
 const key = process.env.SUPABASE_PUBLISHABLE_KEY || '';
-if (process.env.VERCEL && (!url || !key)) throw new Error('Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in Vercel before deploying.');
 if (/^sb_secret_/.test(key)) throw new Error('Never use a Supabase secret key in browser configuration.');
 if (key.split('.').length === 3) {
   try {
