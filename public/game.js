@@ -282,7 +282,6 @@ export class PuzzleGame {
     ctx.save(); ctx.shadowColor = '#301d12aa'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 10;
     ctx.fillStyle = '#735037'; ctx.fillRect(BOARD_X - 15, BOARD_Y - 15, this.room.board_width + 30, this.room.board_height + 30); ctx.restore();
     ctx.fillStyle = '#f6f0df'; ctx.fillRect(BOARD_X - 5, BOARD_Y - 5, this.room.board_width + 10, this.room.board_height + 10);
-    ctx.save(); ctx.globalAlpha = .16; ctx.drawImage(this.image, BOARD_X, BOARD_Y, this.room.board_width, this.room.board_height); ctx.restore();
     ctx.strokeStyle = '#b9ad94'; ctx.lineWidth = 2; ctx.strokeRect(BOARD_X, BOARD_Y, this.room.board_width, this.room.board_height);
     for (let i = 0; i < this.pieces.length; i++) if (this.pieces[i].placed) this.drawPiece(this.pieces[i], i);
     for (let i = 0; i < this.pieces.length; i++) {
